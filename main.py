@@ -1,48 +1,99 @@
+import sys
 from sly import Lexer
 
 
 class Scanner(Lexer):
-    # Set of token names.   This is always required
-    tokens = {ID, IF, ELSE, WHILE, FOR, ZEROS, PRINT, NUMBER, PLUS, MINUS, TIMES, DIVIDE, ASSIGN, LPAREN, RPAREN, SEMICOLON}
+    # Set of token names
+    tokens = {PLUS, MINUS, TIMES, DIVIDE,               # binary operators
+              DOTPLUS, DOTMINUS, DOTTIMES, DOTDIVIDE,   # matrix binary operators
+              EQ, PLUSEQ, MINUSEQ, TIMESEQ, DIVEQ,      # assignment operators
+              LT, GT, LE, GE, NE, EQEQ,                 # relational operators
+              COLON,                                    # extent operator
+              COMMA, SEMICOLON,                         # comma and semicolon
+              IF, ELSE, FOR, WHILE,                     # keywords
+              BREAK, CONTINUE, RETURN,                  # keywords
+              EYE, ZEROS, ONES,                         # keywords
+              PRINT,                                    # keyword
+              ID,                                       # identifiers
+              INTNUM,                                   # integers
+              FLOATNUM,                                 # floating-point numbers
+              STRING}                                   # strings
 
-    # String containing ignored characters between tokens
+    literals = {"(", ")", "[", "]", "{", "}",           # brackets
+                "'"}                                    # matrix transposition
+
+    # String containing ignored characters between tokens (special name "ignore")
     ignore = " \t"
     ignore_comment = r"\#.*"
 
-    # Regular expression rules for tokens
-    ID = r"[a-zA-Z_][a-zA-Z0-9_]*"
-    # keywords
-    ID['if'] = IF
-    ID['else'] = ELSE
-    ID['while'] = WHILE
-    ID['for'] = FOR
+    # relational operators
+    LE = r"<="         # Less than or equal to
+    GE = r">="         # Greater than or equal to
+    LT = r"<"          # Less than
+    GT = r">"          # Greater than
+    NE = r"!="         # Not equal
+    EQEQ = r"=="       # Equal
 
-#     ID['break'] = BREAK
-#     ID['continue'] = CONTINUE
-#     ID['return'] = RETURN
-# 
-#     ID['eye'] = EYE
-    ID['zeros'] = ZEROS
-#     ID['ones'] = ONES
+    # assignment operators
+    EQ = r"="          # Assignment
+    PLUSEQ = r"\+="    # Plus equal
+    MINUSEQ = r"-="    # Minus equal
+    TIMESEQ = r"\*="   # Times equal
+    DIVEQ = r"/="      # Divide equal
 
-    ID['print'] = PRINT
-
-    NUMBER = r"\d+"
-    SEMICOLON = r";"
     # binary operators
     PLUS = r"\+"
     MINUS = r"-"
     TIMES = r"\*"
     DIVIDE = r"/"
-    # matrix binary operators
-    # PLUS = r"\+"
-    # MINUS = r"-"
-    # TIMES = r"\*"
-    # DIVIDE = r"/"
 
-    ASSIGN = r"="
-    LPAREN = r"\("
-    RPAREN = r"\)"
+    # matrix binary operators
+    DOTPLUS = r"\.\+"
+    DOTMINUS = r"\.-"
+    DOTTIMES = r"\.\*"
+    DOTDIVIDE = r"\./"
+
+    # brackets assigned in literals
+
+    # extent operator
+    COLON = r":"
+
+    # matrix transposition assigned in literals
+
+    # comma and semicolon
+    COMMA = r","
+    SEMICOLON = r";"
+
+    # identifiers
+    ID = r"[a-zA-Z_][a-zA-Z0-9_]*"
+
+    # keywords
+    ID['if'] = IF
+    ID['else'] = ELSE
+    ID['for'] = FOR
+    ID['while'] = WHILE
+    ID['break'] = BREAK
+    ID['continue'] = CONTINUE
+    ID['return'] = RETURN
+    ID['eye'] = EYE
+    ID['zeros'] = ZEROS
+    ID['ones'] = ONES
+    ID['print'] = PRINT
+
+    # floating-point numbers
+    @_(r"-?\d*\.\d+(E\d+)?", r"-?\d+\.\d*")
+    def FLOATNUM(self, t):
+        t.value = float(t.value)
+        return t
+
+    # integers
+    @_(r"-?\d+")
+    def INTNUM(self, t):
+        t.value = int(t.value)
+        return t
+
+    # strings
+    STRING = r'".*?"'
 
     # Define a rule so we can track line numbers
     @_(r"\n+")
@@ -55,7 +106,16 @@ class Scanner(Lexer):
 
 
 if __name__ == "__main__":
-    data = """A = zeros(5);"""
+    filename = sys.argv[1] if len(sys.argv) > 1 else "example.txt"
+
+    try:
+        file = open(filename, "r")
+    except IOError:
+        print("Cannot open {0} file".format(filename))
+        sys.exit(0)
+
+    text = file.read()
+
     lexer = Scanner()
-    for tok in lexer.tokenize(data):
-        print("line=%r, type=%r, value=%r" % (tok.lineno, tok.type, tok.value))
+    for tok in lexer.tokenize(text):
+        print("(%d): %s(%s)" % (tok.lineno, tok.type, tok.value))
