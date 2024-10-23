@@ -3,13 +3,9 @@ from sly import Lexer
 
 
 class Scanner(Lexer):
-    # Set of token names
-    tokens = {PLUS, MINUS, TIMES, DIVIDE,               # binary operators
-              DOTPLUS, DOTMINUS, DOTTIMES, DOTDIVIDE,   # matrix binary operators
-              EQ, PLUSEQ, MINUSEQ, TIMESEQ, DIVEQ,      # assignment operators
-              LT, GT, LE, GE, NE, EQEQ,                 # relational operators
-              COLON,                                    # extent operator
-              COMMA, SEMICOLON,                         # comma and semicolon
+    tokens = {DOTADD, DOTSUB, DOTMUL, DOTDIV,           # matrix binary operators
+              ADDASSIGN, SUBASSIGN, MULASSIGN, DIVASSIGN,      # assignment operators
+              LE, GE, EQ, NEQ,                          # relational operators
               IF, ELSE, FOR, WHILE,                     # keywords
               BREAK, CONTINUE, RETURN,                  # keywords
               EYE, ZEROS, ONES,                         # keywords
@@ -20,6 +16,11 @@ class Scanner(Lexer):
               STRING}                                   # strings
 
     literals = {"(", ")", "[", "]", "{", "}",           # brackets
+                "=",                                    # assign
+                "+", "-", "*", "/",                     # binary operators
+                "<", ">",                               # relational operators
+                ":",                                    # extent operator
+                ",", ";",                               # comma and semicolon
                 "'"}                                    # matrix transposition
 
     # String containing ignored characters between tokens (special name "ignore")
@@ -27,42 +28,26 @@ class Scanner(Lexer):
     ignore_comment = r"\#.*"
 
     # relational operators
-    LE = r"<="         # Less than or equal to
-    GE = r">="         # Greater than or equal to
-    LT = r"<"          # Less than
-    GT = r">"          # Greater than
-    NE = r"!="         # Not equal
-    EQEQ = r"=="       # Equal
+    LE = r"<="          # Less than or equal to
+    GE = r">="          # Greater than or equal to
+    EQ = r"=="          # Equal
+    NEQ = r"!="         # Not equal
 
     # assignment operators
-    EQ = r"="          # Assignment
-    PLUSEQ = r"\+="    # Plus equal
-    MINUSEQ = r"-="    # Minus equal
-    TIMESEQ = r"\*="   # Times equal
-    DIVEQ = r"/="      # Divide equal
-
-    # binary operators
-    PLUS = r"\+"
-    MINUS = r"-"
-    TIMES = r"\*"
-    DIVIDE = r"/"
+    ADDASSIGN = r"\+="
+    SUBASSIGN = r"-="
+    MULASSIGN = r"\*="
+    DIVASSIGN = r"/="
 
     # matrix binary operators
-    DOTPLUS = r"\.\+"
-    DOTMINUS = r"\.-"
-    DOTTIMES = r"\.\*"
-    DOTDIVIDE = r"\./"
+    DOTADD = r"\.\+"
+    DOTSUB = r"\.-"
+    DOTMUL = r"\.\*"
+    DOTDIV = r"\./"
 
-    # brackets assigned in literals
-
-    # extent operator
-    COLON = r":"
-
-    # matrix transposition assigned in literals
-
-    # comma and semicolon
-    COMMA = r","
-    SEMICOLON = r";"
+    # binary operators, brackets, extent operator, 
+    # matrix transposition, comma and semicolon
+    # all assigned in literals
 
     # identifiers
     ID = r"[a-zA-Z_][a-zA-Z0-9_]*"
@@ -101,7 +86,7 @@ class Scanner(Lexer):
         self.lineno += len(t.value)
 
     def error(self, t):
-        print("Line %d: Bad character %r" % (self.lineno, t.value[0]))
+        print("Line %d: Bad character %r in %r" % (self.lineno, t.value[0], t.value))
         self.index += 1
 
 
