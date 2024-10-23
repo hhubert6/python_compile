@@ -81,10 +81,16 @@ class Scanner(Lexer):
     ID['print'] = PRINT
 
     # floating-point numbers
-    FLOATNUM = r"-?\d+\.(\d+)"
+    @_(r"-?\d*\.\d+(E\d+)?", r"-?\d+\.\d*")
+    def FLOATNUM(self, t):
+        t.value = float(t.value)
+        return t
 
     # integers
-    INTNUM = r"-?\d+"
+    @_(r"-?\d+")
+    def INTNUM(self, t):
+        t.value = int(t.value)
+        return t
 
     # strings
     STRING = r'".*?"'
@@ -100,9 +106,9 @@ class Scanner(Lexer):
 
 
 if __name__ == "__main__":
+    filename = sys.argv[1] if len(sys.argv) > 1 else "example.txt"
 
     try:
-        filename = sys.argv[1] if len(sys.argv) > 1 else "example.txt"
         file = open(filename, "r")
     except IOError:
         print("Cannot open {0} file".format(filename))
@@ -112,4 +118,4 @@ if __name__ == "__main__":
 
     lexer = Scanner()
     for tok in lexer.tokenize(text):
-        print("line=%r, type=%r, value=%r" % (tok.lineno, tok.type, tok.value))
+        print("(%d): %s(%s)" % (tok.lineno, tok.type, tok.value))
