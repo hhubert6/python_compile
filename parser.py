@@ -7,51 +7,57 @@ class Mparser(Parser):
     debugfile = 'parser.out'
 
     precedence = (
+        # ("nonassoc", '<', '>'),
         ("left", '+', '-'),
         ("left", '*', '/'),
+        ("right", 'UMINUS'),
     )
 
-    @_('expr "+" expr')
+    start = 'program'
+
+    @_('instruction ";" program')
+    def program(self, p):
+        return [p.instruction, *p.program]
+
+    @_('instruction ";"')
+    def program(self, p):
+        return [p.instruction]
+
+    @_('assignment')
+       # 'loop_instr',
+       # 'function')
+    def instruction(self, p):
+        return p[0]
+
+    @_('ID "=" value',
+       'ID ADDASSIGN value',
+       'ID SUBASSIGN value',
+       'ID MULASSIGN value',
+       'ID DIVASSIGN value')
+    def assignment(self, p):
+        return (p[1], p.ID, p.value)
+
+    @_('expr')
+    def value(self, p):
+        return p.expr
+
+    @_('expr "+" expr',
+       'expr "-" expr',
+       'expr "*" expr',
+       'expr "/" expr')
     def expr(self, p):
-        return p.expr0 + p.expr1
+        return (p[1], p.expr0, p.expr1)
 
-    @_('expr "-" expr')
+    @_('"(" expr ")"')
     def expr(self, p):
-        return p.expr0 - p.expr1
+        return p.expr
 
-    @_('expr "*" expr')
+    @_('"-" expr %prec UMINUS ')
     def expr(self, p):
-        return p.expr0 * p.expr1
+        return ("-", p.expr)
 
-    @_('expr "/" expr')
+    @_('INTNUM', 
+       'FLOATNUM', 
+       'ID')
     def expr(self, p):
-        return p.expr0 / p.expr1
-
-    @_('INTNUM')
-    def expr(self, p):
-        return p.INTNUM
-
-
-    # @_('instructions_opt')
-    # def p_program(p):
-    #     pass
-    #
-    # @_('instructions')
-    # def p_instructions_opt(p):
-    #     pass
-    #
-    # @_('')
-    # def p_instructions_opt(p):
-    #     pass
-    #
-    # @_('instructions instruction')
-    # def p_instructions(p):
-    #     pass
-    #
-    # @_('instruction')
-    # def p_instructions(p):
-    #     pass
-
-
-    # to finish the grammar
-    # ....
+        return p[0]
