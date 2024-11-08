@@ -12,6 +12,7 @@ class Mparser(Parser):
         ("nonassoc", '<', '>', 'LE', 'GE', 'EQ', 'NEQ'),
         ("left", '+', '-', 'DOTADD', 'DOTSUB'),
         ("left", '*', '/', 'DOTMUL', 'DOTDIV'),
+        ("right", "\'"),
         ("right", 'UMINUS'),
     )
 
@@ -44,12 +45,13 @@ class Mparser(Parser):
     # ---------- ASSIGNMENT -----------
     #
     @_('ref "="       expr ";"',
+       'ref "="     STRING ";"',
        'ref ADDASSIGN expr ";"',
        'ref SUBASSIGN expr ";"',
        'ref MULASSIGN expr ";"',
        'ref DIVASSIGN expr ";"')
     def assignment(self, p):
-        return (p[1], p.ref, p.expr)
+        return (p[1], p.ref, p[2])
 
     @_('ID')
     def ref(self, p):
