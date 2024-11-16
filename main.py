@@ -1,6 +1,7 @@
 import sys
 from scanner import Scanner
 from parser import Mparser
+from tree_printer import TreePrinter
 
 
 if __name__ == "__main__":
@@ -17,7 +18,7 @@ if __name__ == "__main__":
     lexer = Scanner()
     parser = Mparser()
     res = parser.parse(lexer.tokenize(text))
-    print(res)
+    res.printTree()
 
     # for tok in lexer.tokenize(text):
     #     print("(%d): %s(%s)" % (tok.lineno, tok.type, tok.value))

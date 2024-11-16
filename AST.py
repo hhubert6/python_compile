@@ -2,9 +2,12 @@ from dataclasses import dataclass
 
 
 class Node(object):
-    pass
+    def printTree(self, indent=0):
+        pass
+
 
 # --------- TYPES ---------
+
 
 @dataclass
 class IntNum(Node):
@@ -29,7 +32,7 @@ class String(Node):
 @dataclass
 class Ref(Node):
     variable: Variable
-    indexes: list[int]
+    indexes: list[Node]
 
 
 @dataclass
@@ -40,6 +43,7 @@ class Range(Node):
 
 # ------- EXPRESSIONS -------
 
+
 @dataclass
 class BinExpr(Node):
     op: str
@@ -48,16 +52,35 @@ class BinExpr(Node):
 
 
 @dataclass
+class UnaryExpr(Node):
+    op: str
+    value: Node
+
+
+@dataclass
 class Vector(Node):
     values: list[Node]
 
 
+@dataclass
+class FunctionCall(Node):
+    name: str
+    arg: Node
+
+
 # ---------- INSTRUCTIONS ----------
+
+
 @dataclass
 class Assignment(Node):
     instr: str
     ref: Ref | Variable
     value: BinExpr | String 
+
+
+@dataclass
+class ReturnInstr(Node):
+    value: Node
 
 
 @dataclass
@@ -69,7 +92,7 @@ class SpecialInstr(Node):
 class IfElseInstr(Node):
     condition: Node
     then_block: Node
-    else_block: Node
+    else_block: Node | None = None
 
 
 @dataclass
@@ -90,12 +113,18 @@ class WhileLoop(Node):
     block: Node
 
 
+# ---------- OTHER ----------
+
+
 class Program(Node):
-    def __init__(self, instructions: list):
+    def __init__(self, instructions: list[Node]):
         self.instructions = instructions
 
+    def add_instr(self, instr: Node):
+        self.instructions.insert(0, instr)
 
+
+@dataclass
 class Error(Node):
-    def __init__(self):
-        pass
-      
+    msg: str
+
