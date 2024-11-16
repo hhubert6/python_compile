@@ -37,10 +37,6 @@ class Mparser(Parser):
     def instruction(self, p):
         return p[0]
 
-    # @_('error')
-    # def instruction(self, p):
-    #     return "error"
-
     #
     # ---------- ASSIGNMENT -----------
     #
@@ -80,6 +76,14 @@ class Mparser(Parser):
     def if_else_instr(self, p):
         return ("if", p.expr, ("then", p.instruction0), ("else", p.instruction1))
 
+    @_('IF "(" error ")" instruction %prec IFX')
+    def if_else_instr(self, p):
+        return ("if", "Syntax error in if statement. Bad expression")
+
+    @_('IF "(" error ")" instruction ELSE instruction')
+    def if_else_instr(self, p):
+        return ("if", "Syntax error in if statement. Bad expression")
+
     #
     # ----------- PRINT INSTRUCTION ------------
     #
@@ -87,9 +91,9 @@ class Mparser(Parser):
     def print_instr(self, p):
         return ("print", p.args)
 
-    # @_('PRINT error ";"')
-    # def print_instr(self, p):
-    #     return ("print", "error")
+    @_('PRINT error ";"')
+    def print_instr(self, p):
+        return ("print", "Syntax error in print statement. Bad expression")
 
     @_('arg "," args')
     def args(self, p):
@@ -99,7 +103,8 @@ class Mparser(Parser):
     def args(self, p):
         return [p.arg]
 
-    @_('expr', 'STRING')
+    @_('expr', 
+       'STRING')
     def arg(self, p):
         return p[0]
 
@@ -109,6 +114,10 @@ class Mparser(Parser):
     @_('WHILE "(" expr ")" instruction')
     def loop_instr(self, p):
         return ("while", p.expr, p.instruction)
+
+    @_('WHILE "(" error ")" instruction')
+    def loop_instr(self, p):
+        return ("while", "Syntax error in while instruction. Bad expression")
     
     @_('FOR ID "=" integer ":" integer instruction')
     def loop_instr(self, p):
@@ -131,6 +140,10 @@ class Mparser(Parser):
     @_('RETURN expr ";"')
     def return_instr(self, p):
         return ("return", p.expr)
+
+    @_('RETURN error ";"')
+    def return_instr(self, p):
+        return ("return", "Syntax error in return statement. Bad expression")
 
     #
     # ----------- EXPRESSION -------------
@@ -176,6 +189,10 @@ class Mparser(Parser):
        'ID')
     def expr(self, p):
         return p[0]
+
+    @_('error')
+    def expr(self, p):
+        return ("Syntax error in expression",)
 
     #
     # ---------- VECTOR INITILIZATION ---------
