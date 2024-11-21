@@ -48,7 +48,7 @@ class Range(Node):
 class BinExpr(Node):
     op: str
     left: Node
-    right: Node 
+    right: Node
 
 
 @dataclass
@@ -75,7 +75,7 @@ class FunctionCall(Node):
 class Assignment(Node):
     instr: str
     ref: Ref | Variable
-    value: BinExpr | String 
+    value: BinExpr | String
 
 
 @dataclass
@@ -127,4 +127,3 @@ class Program(Node):
 @dataclass
 class Error(Node):
     msg: str
-

@@ -172,6 +172,10 @@ class Mparser(Parser):
     def expr(self, p):
         return p.expr
 
+    @_('"(" error ")"')
+    def expr(self, p):
+        return AST.Error("Syntax error. Bad expression")
+
     @_('"-" expr %prec UMINUS ')
     def expr(self, p):
         return AST.UnaryExpr("-", p.expr)
@@ -201,10 +205,6 @@ class Mparser(Parser):
     @_('ID')
     def expr(self, p):
         return AST.Variable(p[0])
-
-    @_('error')
-    def expr(self, _):
-        return AST.Error("Syntax error in expression",)
 
     #
     # ---------- VECTOR INITILIZATION ---------
