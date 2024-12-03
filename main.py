@@ -1,10 +1,11 @@
 import sys
 from scanner import Scanner
 from parser import Mparser
+from tree_printer import TreePrinter
 
 
 if __name__ == "__main__":
-    filename = sys.argv[1] if len(sys.argv) > 1 else "example.txt"
+    filename = sys.argv[1] if len(sys.argv) > 1 else "samples/example.txt"
 
     try:
         file = open(filename, "r")
@@ -17,7 +18,7 @@ if __name__ == "__main__":
     lexer = Scanner()
     parser = Mparser()
     res = parser.parse(lexer.tokenize(text))
-    print(res)
+    res.printTree()
 
     # for tok in lexer.tokenize(text):
     #     print("(%d): %s(%s)" % (tok.lineno, tok.type, tok.value))

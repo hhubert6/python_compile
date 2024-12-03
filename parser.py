@@ -1,4 +1,5 @@
 from sly import Parser
+import AST
 from scanner import Scanner
 
 
@@ -20,11 +21,12 @@ class Mparser(Parser):
 
     @_('instruction program')
     def program(self, p):
-        return [p.instruction, *p.program]
+        p.program.add_instr(p.instruction)
+        return p.program
 
     @_('instruction')
     def program(self, p):
-        return [p.instruction]
+        return AST.Program([p.instruction])
 
     @_('assignment', 
        'if_else_instr',
@@ -41,21 +43,21 @@ class Mparser(Parser):
     # ---------- ASSIGNMENT -----------
     #
     @_('ref "="       expr ";"',
-       'ref "="     STRING ";"',
+       'ref "="     string ";"',
        'ref ADDASSIGN expr ";"',
        'ref SUBASSIGN expr ";"',
        'ref MULASSIGN expr ";"',
        'ref DIVASSIGN expr ";"')
     def assignment(self, p):
-        return (p[1], p.ref, p[2])
+        return AST.Assignment(p[1], p.ref, p[2])
 
     @_('ID')
     def ref(self, p):
-        return p.ID
+        return AST.Variable(p.ID)
 
     @_('ID "[" indexes "]"')
     def ref(self, p):
-        return ('ref', p.ID, p.indexes)
+        return AST.Ref(AST.Variable(p.ID), p.indexes)
 
     @_('integer "," indexes')
     def indexes(self, p):
@@ -70,30 +72,27 @@ class Mparser(Parser):
     #
     @_('IF "(" expr ")" instruction %prec IFX')
     def if_else_instr(self, p):
-        return ("if", p.expr, ("then", p.instruction))
+        return AST.IfElseInstr(p.expr, p.instruction)
 
     @_('IF "(" expr ")" instruction ELSE instruction')
     def if_else_instr(self, p):
-        return ("if", p.expr, ("then", p.instruction0), ("else", p.instruction1))
+        return AST.IfElseInstr(p.expr, p.instruction0, p.instruction1)
 
-    @_('IF "(" error ")" instruction %prec IFX')
-    def if_else_instr(self, p):
-        return ("if", "Syntax error in if statement. Bad expression")
-
-    @_('IF "(" error ")" instruction ELSE instruction')
-    def if_else_instr(self, p):
-        return ("if", "Syntax error in if statement. Bad expression")
+    @_('IF "(" error ")" instruction %prec IFX',
+       'IF "(" error ")" instruction ELSE instruction')
+    def if_else_instr(self, _):
+        return AST.Error("Syntax error in if statement. Bad expression")
 
     #
     # ----------- PRINT INSTRUCTION ------------
     #
     @_('PRINT args ";"')
     def print_instr(self, p):
-        return ("print", p.args)
+        return AST.PrintInstr(p.args)
 
     @_('PRINT error ";"')
-    def print_instr(self, p):
-        return ("print", "Syntax error in print statement. Bad expression")
+    def print_instr(self, _):
+        return AST.Error("Syntax error in print statement. Bad expression")
 
     @_('arg "," args')
     def args(self, p):
@@ -104,7 +103,7 @@ class Mparser(Parser):
         return [p.arg]
 
     @_('expr', 
-       'STRING')
+       'string')
     def arg(self, p):
         return p[0]
 
@@ -113,19 +112,23 @@ class Mparser(Parser):
     #
     @_('WHILE "(" expr ")" instruction')
     def loop_instr(self, p):
-        return ("while", p.expr, p.instruction)
+        return AST.WhileLoop(p.expr, p.instruction)
 
     @_('WHILE "(" error ")" instruction')
     def loop_instr(self, p):
-        return ("while", "Syntax error in while instruction. Bad expression")
+        return AST.Error("Syntax error in while instruction. Bad expression")
     
     @_('FOR ID "=" integer ":" integer instruction')
     def loop_instr(self, p):
-        return ("for", p.ID, p.integer0, p.integer1, p.instruction)
+        return AST.ForLoop(AST.Variable(p.ID), AST.Range(p.integer0, p.integer1), p.instruction)
 
-    @_('ID', 'INTNUM')
+    @_('ID')
     def integer(self, p):
-        return p[0]
+        return AST.Variable(p.ID)
+
+    @_('INTNUM')
+    def integer(self, p):
+        return AST.IntNum(p.INTNUM)
 
     #
     # ------- BLOCK --------
@@ -139,11 +142,11 @@ class Mparser(Parser):
     #
     @_('RETURN expr ";"')
     def return_instr(self, p):
-        return ("return", p.expr)
+        return AST.ReturnInstr(p.expr)
 
     @_('RETURN error ";"')
     def return_instr(self, p):
-        return ("return", "Syntax error in return statement. Bad expression")
+        return AST.Error("Syntax error in return statement. Bad expression")
 
     #
     # ----------- EXPRESSION -------------
@@ -163,43 +166,52 @@ class Mparser(Parser):
        'expr EQ expr',
        'expr NEQ expr')
     def expr(self, p):
-        return (p[1], p.expr0, p.expr1)
+        return AST.BinExpr(p[1], p.expr0, p.expr1)
 
     @_('"(" expr ")"')
     def expr(self, p):
         return p.expr
 
+    @_('"(" error ")"')
+    def expr(self, p):
+        return AST.Error("Syntax error. Bad expression")
+
     @_('"-" expr %prec UMINUS ')
     def expr(self, p):
-        return ("-", p.expr)
+        return AST.UnaryExpr("-", p.expr)
 
     @_('expr "\'"')
     def expr(self, p):
-        return ("transpose", p.expr)
+        return AST.UnaryExpr("TRANSPOSE", p.expr)
 
     @_('EYE "(" expr ")"', 
        'ZEROS "(" expr ")"',
        'ONES "(" expr ")"')
     def expr(self, p):
-        return (p[0], p.expr)
+        return AST.FunctionCall(p[0], p.expr)
 
-    @_('vector',
-       'INTNUM', 
-       'FLOATNUM', 
-       'ID')
+    @_('vector')
     def expr(self, p):
         return p[0]
 
-    @_('error')
+    @_('INTNUM')
     def expr(self, p):
-        return ("Syntax error in expression",)
+        return AST.IntNum(p[0])
+
+    @_('FLOATNUM')
+    def expr(self, p):
+        return AST.FloatNum(p[0])
+
+    @_('ID')
+    def expr(self, p):
+        return AST.Variable(p[0])
 
     #
     # ---------- VECTOR INITILIZATION ---------
     #
     @_('"[" innerlist "]"')
     def vector(self, p):
-        return ("vector", p.innerlist)
+        return AST.Vector(p.innerlist)
 
     @_('expr "," innerlist')
     def innerlist(self, p):
@@ -208,4 +220,11 @@ class Mparser(Parser):
     @_('expr')
     def innerlist(self, p):
         return [p.expr]
+
+    #
+    # ---------- STRING ---------
+    #
+    @_('STRING')
+    def string(self, p):
+        return AST.String(p.STRING)
 
