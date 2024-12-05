@@ -18,12 +18,12 @@ if __name__ == "__main__":
 
     lexer = Scanner()
     parser = Mparser()
-    res = parser.parse(lexer.tokenize(text))
+    ast = parser.parse(lexer.tokenize(text))
+    # ast.printTree()
 
     typeChecker = TypeChecker()   
-    typeChecker.visit(res)
-
-    # res.printTree()
+    typeChecker.visit(ast)
+    typeChecker.report_errors()
 
     # for tok in lexer.tokenize(text):
     #     print("(%d): %s(%s)" % (tok.lineno, tok.type, tok.value))

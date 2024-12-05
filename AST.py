@@ -65,7 +65,7 @@ class Vector(Node):
 @dataclass
 class FunctionCall(Node):
     name: str
-    arg: Node
+    args: list[Node]
 
 
 # ---------- INSTRUCTIONS ----------

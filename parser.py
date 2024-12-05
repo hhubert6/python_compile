@@ -37,7 +37,9 @@ class Mparser(Parser):
        'BREAK ";"',
        'CONTINUE ";"')
     def instruction(self, p):
-        return p[0]
+        if isinstance(p[0], AST.Node):
+            return p[0]
+        return AST.SpecialInstr(p[0])
 
     #
     # ---------- ASSIGNMENT -----------
@@ -184,11 +186,16 @@ class Mparser(Parser):
     def expr(self, p):
         return AST.UnaryExpr("TRANSPOSE", p.expr)
 
-    @_('EYE "(" expr ")"', 
+    @_('EYE "(" expr ")"',
        'ZEROS "(" expr ")"',
        'ONES "(" expr ")"')
     def expr(self, p):
-        return AST.FunctionCall(p[0], p.expr)
+        return AST.FunctionCall(p[0], [p.expr])
+
+    @_('ZEROS "(" expr "," expr ")"',
+       'ONES "(" expr "," expr ")"')
+    def expr(self, p):
+        return AST.FunctionCall(p[0], [p.expr0, p.expr1])
 
     @_('vector')
     def expr(self, p):
@@ -202,9 +209,9 @@ class Mparser(Parser):
     def expr(self, p):
         return AST.FloatNum(p[0])
 
-    @_('ID')
+    @_('ref')
     def expr(self, p):
-        return AST.Variable(p[0])
+        return p[0]
 
     #
     # ---------- VECTOR INITILIZATION ---------
