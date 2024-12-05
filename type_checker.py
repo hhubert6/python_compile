@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from AST import *
+import AST
 from symbol_table import SymbolTable, VariableSymbol
 
 """
@@ -17,18 +18,20 @@ class NodeVisitor(object):
 
     def generic_visit(self, node):
         print(f"\n\n There is no {node.__class__.__name__} class in AST.py that inherits node \n\n")
-        raise Error # auxiliary
+        # raise Error # auxiliary
 
 
 class TypeChecker(NodeVisitor):
 
     def __init__(self):
         self.symbol_table = SymbolTable(None, "global")
+        self.loop_indent = 0
         self.errors = []
 
 
     # ------- EXTRA -------
     def report_errors(self):
+        print("-- Errors --")
         for error in self.errors:
             print(error)
     # ---------------------
@@ -147,8 +150,9 @@ class TypeChecker(NodeVisitor):
         return self.visit(node.value)
 
 
-    def visit_SpecialInstr(self, node):
-        pass
+    def visit_SpecialInstr(self, node: AST.SpecialInstr):
+        if self.loop_indent == 0:
+            self.errors.append(f"Usage of '{node.name}' out of loop")
 
 
     def visit_IfElseInstr(self, node):
@@ -165,20 +169,34 @@ class TypeChecker(NodeVisitor):
             self.visit(arg)
 
 
-    def visit_ForLoop(self, node):
+    def visit_ForLoop(self, node: AST.ForLoop):
         range_type = self.visit(node.var_range)
         if range_type != "range":
             self.errors.append(f"Type error in range in for loop: {range_type}")
-        self.symbol_table.put(node.variable.name, VariableSymbol(node.variable.name, "int")) # TODO: correct scope (push scope)
+
+        self.symbol_table = self.symbol_table.pushScope("for")
+        self.loop_indent += 1
+
+        self.symbol_table.put(node.variable.name, VariableSymbol(node.variable.name, "int"))
         self.visit(node.block)
-        return None # TODO
+
+        self.symbol_table = self.symbol_table.popScope()
+        self.loop_indent -= 1
 
 
     def visit_WhileLoop(self, node):
         condition_type = self.visit(node.condition)
         if condition_type != "bool":
             self.errors.append(f"Type error in condition in while-loop '{condition_type}'")
+
+
+        self.symbol_table = self.symbol_table.pushScope("while")
+        self.loop_indent += 1
+
         self.visit(node.block)
+
+        self.symbol_table = self.symbol_table.popScope()
+        self.loop_indent -= 1
 
 
 # ---------- OTHER ----------

@@ -37,7 +37,7 @@ class SymbolTable(object):
     
 
     def pushScope(self, name):
-        return SymbolTable(self, None, name)
+        return SymbolTable(self, name)
 
 
     def popScope(self):
