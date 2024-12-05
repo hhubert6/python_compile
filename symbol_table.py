@@ -26,7 +26,7 @@ class SymbolTable(object):
         self.symbols[name] = symbol
 
 
-    def get(self, name): # get variable symbol or fundef from <name> entry
+    def get(self, name) -> VariableSymbol | None: # get variable symbol or fundef from <name> entry
         if name in self.symbols:
             return self.symbols[name]
         return self.parent.get(name) if self.parent else None

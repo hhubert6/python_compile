@@ -1,12 +1,90 @@
 #!/usr/bin/python
 
-from AST import *
+from collections import defaultdict
 import AST
 from symbol_table import SymbolTable, VariableSymbol
 
-"""
-types: 'int', 'flaot', 'str', 'range', 'vector' TODO
-"""
+ttype = defaultdict(lambda: defaultdict(lambda: defaultdict(str)))
+
+ttype['+']['int']['int'] = 'int'
+ttype['+']['int']['float'] = 'float'
+ttype['+']['float']['int'] = 'float'
+ttype['+']['float']['float'] = 'float'
+ttype['+']['str']['str'] = 'str'
+
+ttype['-']['int']['int'] = 'int'
+ttype['-']['int']['float'] = 'float'
+ttype['-']['float']['int'] = 'float'
+ttype['-']['float']['float'] = 'float'
+
+ttype['*']['int']['int'] = 'int'
+ttype['*']['int']['float'] = 'float'
+ttype['*']['float']['int'] = 'float'
+ttype['*']['float']['float'] = 'float'
+
+ttype['/']['int']['int'] = 'int'
+ttype['/']['int']['float'] = 'float'
+ttype['/']['float']['int'] = 'float'
+ttype['/']['float']['float'] = 'float'
+
+ttype['>']['int']['int'] = 'bool'
+ttype['>']['int']['float'] = 'bool'
+ttype['>']['float']['int'] = 'bool'
+ttype['>']['float']['float'] = 'bool'
+
+ttype['<']['int']['int'] = 'bool'
+ttype['<']['int']['float'] = 'bool'
+ttype['<']['float']['int'] = 'bool'
+ttype['<']['float']['float'] = 'bool'
+
+ttype['>=']['int']['int'] = 'bool'
+ttype['>=']['int']['float'] = 'bool'
+ttype['>=']['float']['int'] = 'bool'
+ttype['>=']['float']['float'] = 'bool'
+
+ttype['<=']['int']['int'] = 'bool'
+ttype['<=']['int']['float'] = 'bool'
+ttype['<=']['float']['int'] = 'bool'
+ttype['<=']['float']['float'] = 'bool'
+
+ttype['==']['int']['int'] = 'bool'
+ttype['==']['int']['float'] = 'bool'
+ttype['==']['float']['int'] = 'bool'
+ttype['==']['float']['float'] = 'bool'
+ttype['==']['vector']['vector'] = 'bool'
+
+ttype['!=']['int']['int'] = 'bool'
+ttype['!=']['int']['float'] = 'bool'
+ttype['!=']['float']['int'] = 'bool'
+ttype['!=']['float']['float'] = 'bool'
+ttype['!=']['vector']['vector'] = 'bool'
+
+ttype['.+']['vector']['vector'] = 'vector'
+ttype['.-']['vector']['vector'] = 'vector'
+ttype['.*']['vector']['vector'] = 'vector'
+ttype['./']['vector']['vector'] = 'vector'
+
+ttype['+=']['int']['int'] = 'int'
+ttype['+=']['int']['float'] = 'float'
+ttype['+=']['float']['int'] = 'float'
+ttype['+=']['float']['float'] = 'float'
+ttype['+=']['str']['str'] = 'str'
+
+ttype['-=']['int']['int'] = 'int'
+ttype['-=']['int']['float'] = 'float'
+ttype['-=']['float']['int'] = 'float'
+ttype['-=']['float']['float'] = 'float'
+
+ttype['*=']['int']['int'] = 'int'
+ttype['*=']['int']['float'] = 'float'
+ttype['*=']['float']['int'] = 'float'
+ttype['*=']['float']['float'] = 'float'
+
+ttype['/=']['int']['int'] = 'int'
+ttype['/=']['int']['float'] = 'float'
+ttype['/=']['float']['int'] = 'float'
+ttype['/=']['float']['float'] = 'float'
+
 
 class NodeVisitor(object):
 
@@ -49,6 +127,7 @@ class TypeChecker(NodeVisitor):
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
             self.errors.append(f"Undeclared variable {node.name}")
+            return None
         return symbol.type
 
 
@@ -56,10 +135,10 @@ class TypeChecker(NodeVisitor):
         return "str"
     
 
-    def visit_Ref(self, node):
+    def visit_Ref(self, node: AST.Ref):
         pass # TODO
-        variable: Variable
-        indexes: list[Node]
+        variable: AST.Variable
+        indexes: list[AST.Node]
 
 
     def visit_Range(self, node):
@@ -74,33 +153,16 @@ class TypeChecker(NodeVisitor):
 # ------- EXPRESSIONS -------
 
 
-    def visit_BinExpr(self, node):
+    def visit_BinExpr(self, node: AST.BinExpr):
         left_type = self.visit(node.left)
         right_type = self.visit(node.right)
         op = node.op
 
-        if op in ["+", "-", "*", "/"]: # TODO for now we don't accept operations on strings, etc.
-            if left_type == right_type and left_type in ["int", "float"]:
-                return left_type
-            elif left_type in ["int", "float"] and right_type in ["int", "float"]:
-                return "float"
-            else:
-                self.errors.append(f"Type error in binary expression: {left_type} {op} {right_type}")
-            
-        elif op in [".+", ".-", ".*", "./"]:
-            if left_type == right_type and left_type == "vector": # TODO: size of vectors DOES matter
-                return "vector"
-            else:
-                self.errors.append(f"Type error in binary expression: {left_type} {op} {right_type}")
-            
-        elif op in ["<", ">", "<=", ">=", "==", "!="]:
-            if left_type == right_type:
-                return "bool"
-            else:
-                self.errors.append(f"Type error in comparison (binary expression): {left_type} {op} {right_type}")
-            
-        else:
-            self.errors.append(f"Unknown binary operator: {op}")
+        if ttype[op][left_type][right_type] == "":
+            self.errors.append(f"Type error in binary expression (not supported): {left_type} {op} {right_type}")
+            return None
+
+        return ttype[op][left_type][right_type]
 
         
     def visit_UnaryExpr(self, node):
@@ -136,7 +198,7 @@ class TypeChecker(NodeVisitor):
     def visit_Assignment(self, node):
         value_type = self.visit(node.value)
 
-        if isinstance(node.ref, Variable):
+        if isinstance(node.ref, AST.Variable):
             var_name = node.ref.name
             var_symbol = VariableSymbol(var_name, value_type)
             self.symbol_table.put(var_name, var_symbol)
@@ -184,11 +246,10 @@ class TypeChecker(NodeVisitor):
         self.loop_indent -= 1
 
 
-    def visit_WhileLoop(self, node):
+    def visit_WhileLoop(self, node: AST.WhileLoop):
         condition_type = self.visit(node.condition)
         if condition_type != "bool":
             self.errors.append(f"Type error in condition in while-loop '{condition_type}'")
-
 
         self.symbol_table = self.symbol_table.pushScope("while")
         self.loop_indent += 1

@@ -45,7 +45,6 @@ class Mparser(Parser):
     # ---------- ASSIGNMENT -----------
     #
     @_('ref "="       expr ";"',
-       'ref "="     string ";"',
        'ref ADDASSIGN expr ";"',
        'ref SUBASSIGN expr ";"',
        'ref MULASSIGN expr ";"',
@@ -104,8 +103,7 @@ class Mparser(Parser):
     def args(self, p):
         return [p.arg]
 
-    @_('expr', 
-       'string')
+    @_('expr')
     def arg(self, p):
         return p[0]
 
@@ -209,7 +207,8 @@ class Mparser(Parser):
     def expr(self, p):
         return AST.FloatNum(p[0])
 
-    @_('ref')
+    @_('ref',
+       'string')
     def expr(self, p):
         return p[0]
 

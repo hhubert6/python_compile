@@ -26,7 +26,7 @@ class Variable(Node):
 
 @dataclass
 class String(Node):
-    name: str
+    value: str
 
 
 @dataclass
