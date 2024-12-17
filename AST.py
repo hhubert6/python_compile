@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 
 
+@dataclass
 class Node(object):
+    lineno: int
+
     def printTree(self, indent=0):
         pass
 
@@ -117,7 +120,8 @@ class WhileLoop(Node):
 
 
 class Program(Node):
-    def __init__(self, instructions: list[Node]):
+    def __init__(self, lineno: int, instructions: list[Node]):
+        super().__init__(lineno)
         self.instructions = instructions
 
     def add_instr(self, instr: Node):
