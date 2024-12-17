@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -52,6 +52,7 @@ class BinExpr(Node):
     op: str
     left: Node
     right: Node
+    dims: list[int] = field(default_factory=lambda: [])
 
 
 @dataclass
@@ -63,12 +64,14 @@ class UnaryExpr(Node):
 @dataclass
 class Vector(Node):
     values: list[Node]
+    dims: list[int] = field(default_factory=lambda: [])
 
 
 @dataclass
 class FunctionCall(Node):
     name: str
     args: list[Node]
+    dims: list[int] = field(default_factory=lambda: [])
 
 
 # ---------- INSTRUCTIONS ----------

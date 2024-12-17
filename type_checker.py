@@ -11,6 +11,11 @@ ttype['+']['int']['float'] = 'float'
 ttype['+']['float']['int'] = 'float'
 ttype['+']['float']['float'] = 'float'
 ttype['+']['str']['str'] = 'str'
+ttype['+']['vector']['int'] = 'vector'
+ttype['+']['vector']['float'] = 'vector'
+ttype['+']['int']['vector'] = 'vector'
+ttype['+']['float']['vector'] = 'vector'
+ttype['+']['vector']['vector'] = 'vector'
 
 ttype['-']['int']['int'] = 'int'
 ttype['-']['int']['float'] = 'float'
@@ -21,6 +26,7 @@ ttype['*']['int']['int'] = 'int'
 ttype['*']['int']['float'] = 'float'
 ttype['*']['float']['int'] = 'float'
 ttype['*']['float']['float'] = 'float'
+ttype['*']['vector']['vector'] = 'vector'
 
 ttype['/']['int']['int'] = 'int'
 ttype['/']['int']['float'] = 'float'
@@ -109,9 +115,10 @@ class TypeChecker(NodeVisitor):
 
     # ------- EXTRA -------
     def report_errors(self):
-        print("-- Errors --")
-        for error in self.errors:
-            print(error)
+        if len(self.errors) > 0:
+            print("-- Errors --")
+            for error in self.errors:
+                print(error)
     # ---------------------
     
 
@@ -126,9 +133,9 @@ class TypeChecker(NodeVisitor):
     def visit_Variable(self, node):
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.errors.append(f"Undeclared variable {node.name}")
+            self.errors.append(f"[line: {node.lineno}] Undeclared variable {node.name}")
             return None
-        return symbol.type
+        return symbol.var_type
 
 
     def visit_String(self, node):
@@ -136,9 +143,11 @@ class TypeChecker(NodeVisitor):
     
 
     def visit_Ref(self, node: AST.Ref):
-        pass # TODO
-        variable: AST.Variable
-        indexes: list[AST.Node]
+        # TODO: checking dimensions of matrix or vector
+        for index in node.indexes:
+            self.visit(index)
+
+        return self.visit(node.variable)
 
 
     def visit_Range(self, node):
@@ -147,7 +156,7 @@ class TypeChecker(NodeVisitor):
         if start_type == end_type == "int":
             return "range"
         else:
-            self.errors.append(f"Type error in range: type of start {start_type}, type of end {end_type}")
+            self.errors.append(f"[line: {node.lineno}] Type error in range: type of start {start_type}, type of end {end_type}")
 
 
 # ------- EXPRESSIONS -------
@@ -159,8 +168,25 @@ class TypeChecker(NodeVisitor):
         op = node.op
 
         if ttype[op][left_type][right_type] == "":
-            self.errors.append(f"Type error in binary expression (not supported): {left_type} {op} {right_type}")
+            self.errors.append(f"[line: {node.lineno}] Type error in binary expression (not supported): {left_type} {op} {right_type}")
             return None
+
+        if left_type == 'vector' and right_type == 'vector':
+            left_dims, right_dims = [], []
+            if isinstance(node.left, AST.Variable):
+                left_dims = self.symbol_table.get(node.left.name).dims
+            if isinstance(node.right, AST.Variable):
+                right_dims = self.symbol_table.get(node.right.name).dims
+            if isinstance(node.left, AST.BinExpr):
+                left_dims = node.left.dims
+            if isinstance(node.right, AST.BinExpr):
+                right_dims = node.right.dims
+
+            if (op == '*' and left_dims[1] != right_dims[0]) \
+                or left_dims != right_dims:
+                    self.errors.append(
+                        f"[line: {node.lineno}] Type error in binary expression (wrong dimensions): {left_dims} {op} {right_dims}"
+                    )
 
         return ttype[op][left_type][right_type]
 
@@ -170,42 +196,103 @@ class TypeChecker(NodeVisitor):
         op = node.op
         if op == "-" and value_type in ["int", "float"]:
             return value_type
-        elif op == "\'" and value_type == "vector": # vector...?
+        elif op == "\'" and value_type == "vector":
             return value_type
         else:
-            self.errors.append(f"Type error in unary expression: {node.op} {value_type}")
+            self.errors.append(f"[line: {node.lineno}] Type error in unary expression: {node.op} {value_type}")
 
     
-    def visit_Vector(self, node):
+    def visit_Vector(self, node: AST.Vector):
         if not node.values:
-            self.errors.append("Empty vector declaration")
+            self.errors.append(f"[line: {node.lineno}] Empty vector declaration")
             return "vector"
-        first_type = self.visit(node.values[0])
-        for value in node.values:
-            value_type = self.visit(value)
-            if value_type != first_type:
-                self.errors.append(f"Mixed types in vector: {first_type} and {value_type}")
+
+        height = len(node.values)
+        if isinstance(node.values[0], AST.Vector):
+            width = len(node.values[0].values)
+            for value in node.values:
+                value_type = self.visit(value)
+                if value_type != 'vector':
+                    self.errors.append(f"[line: {node.lineno}] x")
+                    break
+                elif len(value.values) != width:
+                    self.errors.append(f"[line: {node.lineno}] Wrong dimensions in vector declaration")
+                    break
+        else:
+            width = height
+            height = 1
+            for value in node.values:
+                value_type = self.visit(value)
+                if value_type == 'str':
+                    self.errors.append(f"[line: {node.lineno}] String type not allowed in vector")
+                    break
+                elif value_type == 'vector':
+                    self.errors.append(f"[line: {node.lineno}] x")
+                    break
+
+        node.dims = [height, width]
+
         return "vector"
 
     
-    def visit_FunctionCall(self, node):
-        pass
+    def visit_FunctionCall(self, node: AST.FunctionCall):
+        if node.name in ["eye", "zeros", "ones"]:
+            for arg in node.args:
+                arg_type = self.visit(arg)
+                if arg_type != 'int':
+                    self.errors.append(f"[line: {node.lineno}] Wrong argument type in '{node.name}' function call: '{arg_type}' (should be 'int')")
+
+            for arg in node.args:
+                if isinstance(arg, AST.IntNum):
+                    node.dims.append(arg.value)
+                else:
+                    node.dims.append(-1)
+
+            if len(node.args) == 1:
+                node.dims.append(node.dims[0])
+
+            return "vector"
+        else:
+            self.errors.append(f"[line: {node.lineno}] Undefined function: {node.name}")
  
 
 # ---------- INSTRUCTIONS ----------
 
 
-    def visit_Assignment(self, node):
+    def visit_Assignment(self, node: AST.Assignment):
         value_type = self.visit(node.value)
 
-        if isinstance(node.ref, AST.Variable):
-            var_name = node.ref.name
-            var_symbol = VariableSymbol(var_name, value_type)
-            self.symbol_table.put(var_name, var_symbol)
+        if node.instr == '=':
+            if isinstance(node.ref, AST.Ref):
+                if value_type in ['str', 'vector']:
+                    self.errors.append(f"[line: {node.lineno}] Cannot assign value of type '{value_type}' to a vector element")
+                return self.visit(node.ref)
+            elif isinstance(node.ref, AST.Variable):
+                var_name = node.ref.name
 
-        ref_type = self.visit(node.ref)
-        
-        return ref_type
+                if isinstance(node.value, AST.Vector) or isinstance(node.value, AST.FunctionCall):
+                    var_symbol = VariableSymbol(var_name, value_type, node.value.dims)
+                else:
+                    var_symbol = VariableSymbol(var_name, value_type)
+
+                self.symbol_table.put(var_name, var_symbol)
+
+                return value_type
+
+        else:
+            if isinstance(node.ref, AST.Ref):
+                if value_type in ['str', 'vector']:
+                    self.errors.append(f"[line: {node.lineno}] Cannot assign value of type '{value_type}' to a vector element")
+                return self.visit(node.ref)
+            elif isinstance(node.ref, AST.Variable):
+                variable_type = self.visit(node.ref)
+                if variable_type is None:
+                    return value_type
+
+                value_type = ttype[node.instr][variable_type][value_type]
+                var_symbol = VariableSymbol(node.ref.name, value_type)
+                self.symbol_table.put(node.ref.name, var_symbol)
+                return value_type
     
 
     def visit_ReturnInstr(self, node):
@@ -214,13 +301,13 @@ class TypeChecker(NodeVisitor):
 
     def visit_SpecialInstr(self, node: AST.SpecialInstr):
         if self.loop_indent == 0:
-            self.errors.append(f"Usage of '{node.name}' out of loop")
+            self.errors.append(f"[line: {node.lineno}] Usage of '{node.name}' out of loop")
 
 
     def visit_IfElseInstr(self, node):
         condition_type = self.visit(node.condition)
         if condition_type != "bool":
-            self.errors.append(f"Type error in condition in if-else: '{condition_type}'")
+            self.errors.append(f"[line: {node.lineno}] Type error in condition in if-else: '{condition_type}'")
         self.visit(node.then_block)
         if node.else_block:
             self.visit(node.else_block)
@@ -234,7 +321,7 @@ class TypeChecker(NodeVisitor):
     def visit_ForLoop(self, node: AST.ForLoop):
         range_type = self.visit(node.var_range)
         if range_type != "range":
-            self.errors.append(f"Type error in range in for loop: {range_type}")
+            self.errors.append(f"[line: {node.lineno}] Type error in range in for loop: {range_type}")
 
         self.symbol_table = self.symbol_table.pushScope("for")
         self.loop_indent += 1
@@ -249,7 +336,7 @@ class TypeChecker(NodeVisitor):
     def visit_WhileLoop(self, node: AST.WhileLoop):
         condition_type = self.visit(node.condition)
         if condition_type != "bool":
-            self.errors.append(f"Type error in condition in while-loop '{condition_type}'")
+            self.errors.append(f"[line: {node.lineno}] Type error in condition in while-loop '{condition_type}'")
 
         self.symbol_table = self.symbol_table.pushScope("while")
         self.loop_indent += 1
@@ -263,11 +350,11 @@ class TypeChecker(NodeVisitor):
 # ---------- OTHER ----------
 
 
-    def visit_Program(self, node):
+    def visit_Program(self, node: AST.Program):
         for instruction in node.instructions:
             self.visit(instruction)
         
 
     def visit_Error(self, node):
         if self.visit(node.msg) != "str":
-            self.errors.append(f"Type error in error message: {self.visit(node.msg)}")
+            self.errors.append(f"[line: {node.lineno}] Type error in error message: {self.visit(node.msg)}")
