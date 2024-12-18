@@ -64,6 +64,7 @@ class UnaryExpr(Node):
 @dataclass
 class Vector(Node):
     values: list[Node]
+    elements_type: str | None = None
     dims: list[int] = field(default_factory=lambda: [])
 
 
@@ -71,6 +72,7 @@ class Vector(Node):
 class FunctionCall(Node):
     name: str
     args: list[Node]
+    elements_type: str | None = None
     dims: list[int] = field(default_factory=lambda: [])
 
 

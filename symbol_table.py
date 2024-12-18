@@ -9,10 +9,11 @@ class Symbol:
 
 class VariableSymbol(Symbol):
 
-    def __init__(self, name, var_type, dims: list[int] = []):
+    def __init__(self, name, var_type, dims: list[int] = [], elements_type = None):
         super().__init__(name)
         self.var_type = var_type
         self.dims = dims
+        self.elements_type = elements_type
 
 
 class SymbolTable(object):

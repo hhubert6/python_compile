@@ -60,13 +60,13 @@ class Mparser(Parser):
     def ref(self, p):
         return AST.Ref(p.lineno, AST.Variable(p.lineno, p.ID), p.indexes)
 
-    @_('integer "," indexes')
+    @_('expr "," indexes')
     def indexes(self, p):
-        return [p.integer, *p.indexes]
+        return [p.expr, *p.indexes]
 
-    @_('integer')
+    @_('expr')
     def indexes(self, p):
-        return [p.integer]
+        return [p.expr]
 
     #
     # ----------- IF ELSE INSTRUCTION ------------

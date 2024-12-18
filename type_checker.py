@@ -143,11 +143,28 @@ class TypeChecker(NodeVisitor):
     
 
     def visit_Ref(self, node: AST.Ref):
-        # TODO: checking dimensions of matrix or vector
-        for index in node.indexes:
-            self.visit(index)
+        var_type = self.visit(node.variable)
+        if var_type != 'vector':
+            self.errors.append(f"[line: {node.lineno}] Cannot access elements of non vector type '{var_type}'")
+            return
 
-        return self.visit(node.variable)
+        symbol = self.symbol_table.get(node.variable.name)
+        if symbol is None:
+            return
+
+        if len(symbol.dims) < len(node.indexes):
+            self.errors.append(f"[line: {node.lineno}] Access with wrong dimensions (too many indices)")
+            return symbol.elements_type
+
+        for i, index in enumerate(node.indexes):
+            index_type = self.visit(index)
+            if index_type != 'int':
+                self.errors.append(f"[line: {node.lineno}] Type error in vector access (indices must be 'int') got '{index_type}'")
+            elif isinstance(index, AST.IntNum):
+                if index.value < 0 or index.value >= symbol.dims[i]:
+                    self.errors.append(f"[line: {node.lineno}] Index out of range: {index.value}")
+
+        return symbol.elements_type
 
 
     def visit_Range(self, node):
@@ -177,13 +194,13 @@ class TypeChecker(NodeVisitor):
                 left_dims = self.symbol_table.get(node.left.name).dims
             if isinstance(node.right, AST.Variable):
                 right_dims = self.symbol_table.get(node.right.name).dims
-            if isinstance(node.left, AST.BinExpr):
+            if isinstance(node.left, AST.BinExpr) or isinstance(node.left, AST.FunctionCall):
                 left_dims = node.left.dims
-            if isinstance(node.right, AST.BinExpr):
+            if isinstance(node.right, AST.BinExpr) or isinstance(node.left, AST.FunctionCall):
                 right_dims = node.right.dims
 
             if (op == '*' and left_dims[1] != right_dims[0]) \
-                or left_dims != right_dims:
+                or (op != '*' and left_dims != right_dims):
                     self.errors.append(
                         f"[line: {node.lineno}] Type error in binary expression (wrong dimensions): {left_dims} {op} {right_dims}"
                     )
@@ -199,7 +216,7 @@ class TypeChecker(NodeVisitor):
         elif op == "\'" and value_type == "vector":
             return value_type
         else:
-            self.errors.append(f"[line: {node.lineno}] Type error in unary expression: {node.op} {value_type}")
+            self.errors.append(f"[line: {node.lineno}] Type error in unary expression: {node.op} '{value_type}'")
 
     
     def visit_Vector(self, node: AST.Vector):
@@ -208,29 +225,38 @@ class TypeChecker(NodeVisitor):
             return "vector"
 
         height = len(node.values)
+        elements_type = None
+
         if isinstance(node.values[0], AST.Vector):
             width = len(node.values[0].values)
+
             for value in node.values:
                 value_type = self.visit(value)
                 if value_type != 'vector':
                     self.errors.append(f"[line: {node.lineno}] x")
-                    break
+                    return "vector"
                 elif len(value.values) != width:
                     self.errors.append(f"[line: {node.lineno}] Wrong dimensions in vector declaration")
-                    break
+                    return "vector"
+
+            elements_type = value.elements_type
         else:
             width = height
             height = 1
+
             for value in node.values:
                 value_type = self.visit(value)
                 if value_type == 'str':
                     self.errors.append(f"[line: {node.lineno}] String type not allowed in vector")
-                    break
+                    return "vector"
                 elif value_type == 'vector':
                     self.errors.append(f"[line: {node.lineno}] x")
-                    break
+                    return "vector"
+
+            elements_type = value_type
 
         node.dims = [height, width]
+        node.elements_type = elements_type
 
         return "vector"
 
@@ -250,6 +276,8 @@ class TypeChecker(NodeVisitor):
 
             if len(node.args) == 1:
                 node.dims.append(node.dims[0])
+
+            node.elements_type = 'float'
 
             return "vector"
         else:
@@ -271,7 +299,7 @@ class TypeChecker(NodeVisitor):
                 var_name = node.ref.name
 
                 if isinstance(node.value, AST.Vector) or isinstance(node.value, AST.FunctionCall):
-                    var_symbol = VariableSymbol(var_name, value_type, node.value.dims)
+                    var_symbol = VariableSymbol(var_name, value_type, node.value.dims, node.value.elements_type)
                 else:
                     var_symbol = VariableSymbol(var_name, value_type)
 
