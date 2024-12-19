@@ -196,9 +196,9 @@ class TypeChecker(NodeVisitor):
                 left_dims = self.symbol_table.get(node.left.name).dims
             if isinstance(node.right, AST.Variable):
                 right_dims = self.symbol_table.get(node.right.name).dims
-            if isinstance(node.left, AST.BinExpr) or isinstance(node.left, AST.FunctionCall):
+            if isinstance(node.left, AST.BinExpr) or isinstance(node.left, AST.FunctionCall) or isinstance(node.left, AST.UnaryExpr):
                 left_dims = node.left.dims
-            if isinstance(node.right, AST.BinExpr) or isinstance(node.left, AST.FunctionCall):
+            if isinstance(node.right, AST.BinExpr) or isinstance(node.right, AST.FunctionCall) or isinstance(node.right, AST.UnaryExpr):
                 right_dims = node.right.dims
 
             if (op == '*' and left_dims[1] != right_dims[0]) \
@@ -215,7 +215,12 @@ class TypeChecker(NodeVisitor):
         op = node.op
         if op == "-" and value_type in ["int", "float"]:
             return value_type
-        elif op == "\'" and value_type == "vector":
+        elif op == "TRANSPOSE" and value_type == "vector":
+            if isinstance(node.value, AST.Variable):
+                node.dims = self.symbol_table.get(node.value.name).dims
+            if isinstance(node.value, AST.BinExpr) or isinstance(node.value, AST.FunctionCall) or isinstance(node.value, AST.UnaryExpr):
+                node.dims = node.value.dims
+
             return value_type
         else:
             self.errors.append(f"[line: {node.lineno}] Type error in unary expression: {node.op} '{value_type}'")
@@ -330,7 +335,7 @@ class TypeChecker(NodeVisitor):
 
 
     def visit_SpecialInstr(self, node: AST.SpecialInstr):
-        if self.loop_indent == 0:
+        if (not (self.symbol_table.scope_name in {"for", "while"})):
             self.errors.append(f"[line: {node.lineno}] Usage of '{node.name}' out of loop")
 
 
