@@ -3,7 +3,9 @@ import symbol_table
 from memory import Memory, MemoryStack
 from exceptions import BreakException, ContinueException, ReturnValueException
 from visit import on, when
+from functools import partial
 import sys
+
 
 sys.setrecursionlimit(10000)
 
@@ -20,16 +22,70 @@ operations = {
     '!=': lambda a, b: a != b,
 }
 
+
+def mat_elements_op(a, b, op: str):
+    # TODO: Operation on two vectors, e.g.: [1, 2, 3] + [1, 2, 3]
+    a_rows, a_cols = len(a), len(a[0])
+    b_rows, b_cols = len(b), len(b[0])
+
+    if a_rows != b_rows or a_cols != b_cols:
+        raise RuntimeError(f"Wrong dimensions in matrix elementwise '{op}' operation")
+
+    f = operations[op]
+    return [[f(a[i][j], b[i][j]) for j in range(a_cols)] for i in range(a_rows)]
+
+
+def mat_add(a, b):
+    if isinstance(a, list) and isinstance(b, list):
+        return mat_elements_op(a, b, '+')
+
+    if not isinstance(a, list):
+        a, b = b, a
+        
+    return [[v + b for v in row] for row in a]
+
+
+def mat_mul(a, b):
+    a_rows = len(a)
+    b_cols = len(b[0])
+
+    if a_rows != b_cols:
+        raise RuntimeError('Wrong dimensions in matrix multiplication')
+
+    res = [[0] * b_cols for _ in range(a_rows)]
+
+    for i in range(a_rows):
+        for j in range(b_cols):
+            s = 0
+            for k in range(len(b)):
+                s += a[i][k] * b[k][j]
+            res[i][j] = s
+
+    return res
+
+
 mat_operations = {
-    '+': lambda a, b: NotImplemented,
-    '*': lambda a, b: NotImplemented,
+    '+': lambda a, b: mat_add(a, b),
+    '*': lambda a, b: mat_mul(a, b),
     '==': lambda a, b: a == b,
     '!=': lambda a, b: a != b,
-    '.+': lambda a, b: NotImplemented,
-    '.-': lambda a, b: NotImplemented,
-    '.*': lambda a, b: NotImplemented,
-    './': lambda a, b: NotImplemented,
+    '.+': lambda a, b: mat_elements_op(a, b, '+'),
+    '.-': lambda a, b: mat_elements_op(a, b, '-'),
+    '.*': lambda a, b: mat_elements_op(a, b, '*'),
+    './': lambda a, b: mat_elements_op(a, b, '/'),
 }
+
+
+def mat_fill(value: float, n: int, m: int = None):
+    return [[value] * (m if m else n) for _ in range(n)]
+
+
+mat_functions = {
+    'eye': lambda n: [[1.0 if i == j else 0.0 for j in range(n)] for i in range(n)],
+    'zeros': partial(mat_fill, 0.0),
+    'ones': partial(mat_fill, 1.0)
+}
+
 
 class Interpreter(object):
     memory: MemoryStack = MemoryStack('global')
@@ -82,7 +138,7 @@ class Interpreter(object):
         r2 = node.right.accept(self)
 
         if isinstance(r1, list) or isinstance(r2, list):
-            mat_operations[node.op](r1, r2)
+            return mat_operations[node.op](r1, r2)
 
         return operations[node.op](r1, r2)
 
@@ -109,7 +165,7 @@ class Interpreter(object):
     @when(AST.FunctionCall)
     def visit(self, node: AST.FunctionCall):
         args = [arg.accept(self) for arg in node.args]
-        return NotImplemented(*args)
+        return mat_functions[node.name](*args)
 
 
     @when(AST.Assignment)
@@ -160,7 +216,13 @@ class Interpreter(object):
     @when(AST.PrintInstr)
     def visit(self, node: AST.PrintInstr):
         for arg in node.args:
-            print(arg.accept(self), end=' ')
+            value = arg.accept(self)
+            if isinstance(value, list) and isinstance(value[0], list):
+                print('\n[\n  ', end='')
+                print(*value, sep='\n  ')
+                print(']')
+            else:
+                print(arg.accept(self), end=' ')
         print('')
 
 
