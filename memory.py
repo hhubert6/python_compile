@@ -23,7 +23,7 @@ class MemoryStack:
     def __init__(self, memory=None): # initialize memory stack with memory <memory>
         self.stack: Deque[Memory] = deque()
         if memory:
-            self.stack.appendleft(memory)
+            self.stack.appendleft(Memory(name=memory))
 
     def get(self, name):             # gets from memory stack current value of variable <name>
         for memory in self.stack:

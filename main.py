@@ -30,10 +30,5 @@ if __name__ == "__main__":
         typeChecker.report_errors()
 
         if not typeChecker.errors:
-            ast.accept(Interpreter())
-
-    d = deque([1, 2, 3])
-    
-    print(d[0])
-
+            ast.accept(Interpreter(), toplevel=True)
 

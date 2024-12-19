@@ -154,11 +154,11 @@ class TypeChecker(NodeVisitor):
         if symbol is None:
             return
 
-        if len(symbol.dims) < len(node.indexes):
+        if len(symbol.dims) < len(node.indices):
             self.errors.append(f"[line: {node.lineno}] Access with wrong dimensions (too many indices)")
             return symbol.elements_type
 
-        for i, index in enumerate(node.indexes):
+        for i, index in enumerate(node.indices):
             index_type = self.visit(index)
             if index_type != 'int':
                 self.errors.append(f"[line: {node.lineno}] Type error in vector access (indices must be 'int') got '{index_type}'")

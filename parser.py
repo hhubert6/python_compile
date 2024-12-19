@@ -59,16 +59,16 @@ class Mparser(Parser):
     def ref(self, p):
         return AST.Variable(p.lineno, p.ID)
 
-    @_('ID "[" indexes "]"')
+    @_('ID "[" indices "]"')
     def ref(self, p):
-        return AST.Ref(p.lineno, AST.Variable(p.lineno, p.ID), p.indexes)
+        return AST.Ref(p.lineno, AST.Variable(p.lineno, p.ID), p.indices)
 
-    @_('expr "," indexes')
-    def indexes(self, p):
-        return [p.expr, *p.indexes]
+    @_('expr "," indices')
+    def indices(self, p):
+        return [p.expr, *p.indices]
 
     @_('expr')
-    def indexes(self, p):
+    def indices(self, p):
         return [p.expr]
 
     #
