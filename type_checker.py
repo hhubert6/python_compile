@@ -196,9 +196,11 @@ class TypeChecker(NodeVisitor):
                 left_dims = self.symbol_table.get(node.left.name).dims
             if isinstance(node.right, AST.Variable):
                 right_dims = self.symbol_table.get(node.right.name).dims
-            if isinstance(node.left, AST.BinExpr) or isinstance(node.left, AST.FunctionCall) or isinstance(node.left, AST.UnaryExpr):
+            if isinstance(node.left, AST.BinExpr) or isinstance(node.left, AST.FunctionCall) or \
+                isinstance(node.left, AST.UnaryExpr) or isinstance(node.left, AST.Vector):
                 left_dims = node.left.dims
-            if isinstance(node.right, AST.BinExpr) or isinstance(node.right, AST.FunctionCall) or isinstance(node.right, AST.UnaryExpr):
+            if isinstance(node.right, AST.BinExpr) or isinstance(node.right, AST.FunctionCall) or \
+                isinstance(node.right, AST.UnaryExpr) or isinstance(node.right, AST.Vector):
                 right_dims = node.right.dims
 
             if (op == '*' and left_dims[1] != right_dims[0]) \
@@ -206,6 +208,8 @@ class TypeChecker(NodeVisitor):
                     self.errors.append(
                         f"[line: {node.lineno}] Type error in binary expression (wrong dimensions): {left_dims} {op} {right_dims}"
                     )
+            
+            node.dims = left_dims if left_dims == right_dims else []
 
         return ttype[op][left_type][right_type]
 
@@ -218,7 +222,8 @@ class TypeChecker(NodeVisitor):
         elif op == "TRANSPOSE" and value_type == "vector":
             if isinstance(node.value, AST.Variable):
                 node.dims = self.symbol_table.get(node.value.name).dims
-            if isinstance(node.value, AST.BinExpr) or isinstance(node.value, AST.FunctionCall) or isinstance(node.value, AST.UnaryExpr):
+            if isinstance(node.value, AST.BinExpr) or isinstance(node.value, AST.FunctionCall) or \
+                isinstance(node.value, AST.UnaryExpr) or isinstance(node.value, AST.Vector):
                 node.dims = node.value.dims
 
             return value_type
