@@ -34,10 +34,6 @@ class SymbolTable(object):
         return self.parent.get(name) if self.parent else None
 
 
-    def getParentScope(self):
-        return self.parent
-    
-
     def pushScope(self, name):
         return SymbolTable(self, name)
 
