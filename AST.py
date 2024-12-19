@@ -8,6 +8,9 @@ class Node(object):
     def printTree(self, indent=0):
         pass
 
+    def accept(self, visitor):
+        return visitor.visit(self)
+
 
 # --------- TYPES ---------
 

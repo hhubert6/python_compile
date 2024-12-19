@@ -27,6 +27,7 @@ class Interpreter(object):
 
     @when(AST.Assignment)
     def visit(self, node):
+        print("visit assignment")
         pass
     #
     #
@@ -41,5 +42,7 @@ class Interpreter(object):
 
     @when(AST.Program)
     def visit(self, node: AST.Program):
-        pass
+        print("visiting program")
+        for instruction in node.instructions:
+            instruction.accept(self)
 

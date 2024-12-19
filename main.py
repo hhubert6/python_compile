@@ -1,4 +1,6 @@
+from collections import deque
 import sys
+import AST
 from scanner import Scanner
 from parser import Mparser
 from tree_printer import TreePrinter
@@ -20,7 +22,7 @@ if __name__ == "__main__":
     lexer = Scanner()
     parser = Mparser()
 
-    ast = parser.parse(lexer.tokenize(text))
+    ast: AST.Program = parser.parse(lexer.tokenize(text))
 
     if ast:
         typeChecker = TypeChecker()   
@@ -28,5 +30,10 @@ if __name__ == "__main__":
         typeChecker.report_errors()
 
         if not typeChecker.errors:
-            Interpreter().visit(ast)
+            ast.accept(Interpreter())
+
+    d = deque([1, 2, 3])
+    
+    print(d[0])
+
 
