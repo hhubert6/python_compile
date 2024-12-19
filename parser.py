@@ -121,17 +121,9 @@ class Mparser(Parser):
     def loop_instr(self, p):
         return AST.Error(p.lineno, "Syntax error in while instruction. Bad expression")
     
-    @_('FOR ID "=" integer ":" integer instruction')
+    @_('FOR ID "=" expr ":" expr instruction')
     def loop_instr(self, p):
-        return AST.ForLoop(p.lineno, AST.Variable(p.lineno, p.ID), AST.Range(p.lineno, p.integer0, p.integer1), p.instruction)
-
-    @_('ID')
-    def integer(self, p):
-        return AST.Variable(p.lineno, p.ID)
-
-    @_('INTNUM')
-    def integer(self, p):
-        return AST.IntNum(p.lineno, p.INTNUM)
+        return AST.ForLoop(p.lineno, AST.Variable(p.lineno, p.ID), AST.Range(p.lineno, p.expr0, p.expr1), p.instruction)
 
     #
     # ------- BLOCK --------

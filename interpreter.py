@@ -139,7 +139,6 @@ class Interpreter(object):
 
     @when(AST.SpecialInstr)
     def visit(self, node: AST.SpecialInstr):
-        print(node.name)
         if node.name == 'CONTINUE':
             raise ContinueException()
         elif node.name == 'BREAK':
