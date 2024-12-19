@@ -59,6 +59,7 @@ class BinExpr(Node):
 class UnaryExpr(Node):
     op: str
     value: Node
+    dims: list[int] = field(default_factory=lambda: [])
 
 
 @dataclass
