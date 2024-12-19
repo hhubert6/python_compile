@@ -66,9 +66,11 @@ def mat_mul(a, b):
 
 mat_operations = {
     '+': lambda a, b: mat_add(a, b),
+    '-': lambda a, b: mat_elements_op(a, b, '-'),
     '*': lambda a, b: mat_mul(a, b),
     '==': lambda a, b: a == b,
     '!=': lambda a, b: a != b,
+    '.+': lambda a, b: mat_elements_op(a, b, '+'),
     '.+': lambda a, b: mat_elements_op(a, b, '+'),
     '.-': lambda a, b: mat_elements_op(a, b, '-'),
     '.*': lambda a, b: mat_elements_op(a, b, '*'),
@@ -175,7 +177,10 @@ class Interpreter(object):
         if node.instr != '=':
             old_value = node.ref.accept(self)
             op = node.instr[0]
-            value = operations[op](old_value, value)
+            if isinstance(old_value, list):
+                value = mat_operations[op](old_value, value)
+            else:
+                value = operations[op](old_value, value)
 
         if isinstance(node.ref, AST.Variable):
             self.memory.set(node.ref.name, value)
