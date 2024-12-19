@@ -2,6 +2,7 @@ import sys
 from scanner import Scanner
 from parser import Mparser
 from tree_printer import TreePrinter
+from type_checker import TypeChecker
 
 
 if __name__ == "__main__":
@@ -17,8 +18,12 @@ if __name__ == "__main__":
 
     lexer = Scanner()
     parser = Mparser()
-    res = parser.parse(lexer.tokenize(text))
-    res.printTree()
+    ast = parser.parse(lexer.tokenize(text))
+    # ast.printTree()
+
+    typeChecker = TypeChecker()   
+    typeChecker.visit(ast)
+    typeChecker.report_errors()
 
     # for tok in lexer.tokenize(text):
     #     print("(%d): %s(%s)" % (tok.lineno, tok.type, tok.value))

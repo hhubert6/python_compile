@@ -1,7 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
+@dataclass
 class Node(object):
+    lineno: int
+
     def printTree(self, indent=0):
         pass
 
@@ -26,7 +29,7 @@ class Variable(Node):
 
 @dataclass
 class String(Node):
-    name: str
+    value: str
 
 
 @dataclass
@@ -49,6 +52,7 @@ class BinExpr(Node):
     op: str
     left: Node
     right: Node
+    dims: list[int] = field(default_factory=lambda: [])
 
 
 @dataclass
@@ -60,12 +64,16 @@ class UnaryExpr(Node):
 @dataclass
 class Vector(Node):
     values: list[Node]
+    elements_type: str | None = None
+    dims: list[int] = field(default_factory=lambda: [])
 
 
 @dataclass
 class FunctionCall(Node):
     name: str
-    arg: Node
+    args: list[Node]
+    elements_type: str | None = None
+    dims: list[int] = field(default_factory=lambda: [])
 
 
 # ---------- INSTRUCTIONS ----------
@@ -117,7 +125,8 @@ class WhileLoop(Node):
 
 
 class Program(Node):
-    def __init__(self, instructions: list[Node]):
+    def __init__(self, lineno: int, instructions: list[Node]):
+        super().__init__(lineno)
         self.instructions = instructions
 
     def add_instr(self, instr: Node):

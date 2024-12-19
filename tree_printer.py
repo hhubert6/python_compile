@@ -80,7 +80,8 @@ class TreePrinter:
     @addToClass(AST.FunctionCall)
     def printTree(self: AST.FunctionCall, indent=0):
         TreePrinter.print(self.name, indent)
-        self.arg.printTree(indent + 1)
+        for arg in self.args:
+            arg.printTree(indent + 1)
 
 
     # ---------- INSTRUCTIONS ----------
@@ -101,7 +102,7 @@ class TreePrinter:
 
     @addToClass(AST.SpecialInstr)
     def printTree(self: AST.SpecialInstr, indent=0):
-        TreePrinter.print(self.name, indent)
+        TreePrinter.print(self.name.upper(), indent)
 
 
     @addToClass(AST.IfElseInstr)
