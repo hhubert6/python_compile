@@ -3,6 +3,7 @@ from scanner import Scanner
 from parser import Mparser
 from tree_printer import TreePrinter
 from type_checker import TypeChecker
+from interpreter import Interpreter
 
 
 if __name__ == "__main__":
@@ -18,12 +19,14 @@ if __name__ == "__main__":
 
     lexer = Scanner()
     parser = Mparser()
+
     ast = parser.parse(lexer.tokenize(text))
-    # ast.printTree()
 
-    typeChecker = TypeChecker()   
-    typeChecker.visit(ast)
-    typeChecker.report_errors()
+    if ast:
+        typeChecker = TypeChecker()   
+        typeChecker.visit(ast)
+        typeChecker.report_errors()
 
-    # for tok in lexer.tokenize(text):
-    #     print("(%d): %s(%s)" % (tok.lineno, tok.type, tok.value))
+        if not typeChecker.errors:
+            Interpreter().visit(ast)
+

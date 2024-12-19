@@ -6,6 +6,7 @@ from scanner import Scanner
 class Mparser(Parser):
     tokens = Scanner.tokens
     debugfile = 'parser.out'
+    had_error = False
 
     precedence = (
         ("nonassoc", 'IFX'),
@@ -21,6 +22,8 @@ class Mparser(Parser):
 
     @_('instruction program')
     def program(self, p):
+        if self.had_error:
+            return None
         p.program.add_instr(p.instruction)
         return p.program
 
@@ -234,3 +237,9 @@ class Mparser(Parser):
     def string(self, p):
         return AST.String(p.lineno, p.STRING)
 
+    def error(self, p):
+        self.had_error = True
+        if p:
+            print(f"Syntax error at line {p.lineno}: token=({p.type}, '{p.value}')")
+        else:
+            print("Unexpected end of input")
