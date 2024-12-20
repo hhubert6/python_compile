@@ -225,10 +225,17 @@ class TypeChecker(NodeVisitor):
             return value_type
         elif op == "TRANSPOSE" and value_type == "vector":
             if isinstance(node.value, AST.Variable):
-                node.dims = self.symbol_table.get(node.value.name).dims
+                dims_before_op = self.symbol_table.get(node.value.name).dims
             if isinstance(node.value, AST.BinExpr) or isinstance(node.value, AST.FunctionCall) or \
                 isinstance(node.value, AST.UnaryExpr) or isinstance(node.value, AST.Vector):
-                node.dims = node.value.dims
+                dims_before_op = node.value.dims
+
+            if len(dims_before_op) > 2:
+                self.errors.append(f"[line: {node.lineno}] Transposition not supported for {len(node.dims)} dimensions")
+            if len(dims_before_op) == 2:
+                    node.dims = [dims_before_op[1], dims_before_op[0]]
+            if len(dims_before_op) == 1:
+                node.dims = [dims_before_op, 1]
 
             return value_type
         else:

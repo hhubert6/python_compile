@@ -24,14 +24,17 @@ operations = {
 
 
 def mat_elements_op(a, b, op: str):
-    # TODO: Operation on two vectors, e.g.: [1, 2, 3] + [1, 2, 3]
-    a_rows, a_cols = len(a), len(a[0])
-    b_rows, b_cols = len(b), len(b[0])
+    a_rows = len(a)
+    a_cols = len(a[0]) if isinstance(a[0], list) else 1
+    b_rows = len(b)
+    b_cols = len(b[0]) if isinstance(b[0], list) else 1
 
     if a_rows != b_rows or a_cols != b_cols:
         raise RuntimeError(f"Wrong dimensions in matrix elementwise '{op}' operation")
 
     f = operations[op]
+    if a_cols == b_cols == 1:
+        return [f(a[i], b[i]) for i in range(a_rows)]
     return [[f(a[i][j], b[i][j]) for j in range(a_cols)] for i in range(a_rows)]
 
 
@@ -151,7 +154,13 @@ class Interpreter(object):
         if node.op == '-':
             return -value
         elif node.op == 'TRANSPOSE':
-            return NotImplemented
+            # node.dims describe dimensions after the transpose operation 
+            if node.dims[1] == 1:
+                return [[elem] for elem in value]
+            elif node.dims[0] == 1:
+                return [elem[0] for elem in value]
+            else:
+                return [[new_row[i] for new_row in value] for i in range(node.dims[0])] # node.dims[0] = len(value[0])
 
 
     @when(AST.Vector)
