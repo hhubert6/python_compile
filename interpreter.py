@@ -209,9 +209,9 @@ class Interpreter(object):
 
     @when(AST.SpecialInstr)
     def visit(self, node: AST.SpecialInstr):
-        if node.name == 'CONTINUE':
+        if node.name == 'continue':
             raise ContinueException()
-        elif node.name == 'BREAK':
+        elif node.name == 'break':
             raise BreakException()
 
 
@@ -219,12 +219,16 @@ class Interpreter(object):
     def visit(self, node: AST.IfElseInstr):
         if node.condition.accept(self):
             self.memory.push('if_then')
-            node.then_block.accept(self)
-            self.memory.pop()
+            try:
+                node.then_block.accept(self)
+            finally:
+                self.memory.pop()
         elif node.else_block:
             self.memory.push('if_else')
-            node.else_block.accept(self)
-            self.memory.pop()
+            try:
+                node.else_block.accept(self)
+            finally:
+                self.memory.pop()
 
 
     @when(AST.PrintInstr)
