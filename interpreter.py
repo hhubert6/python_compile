@@ -249,31 +249,34 @@ class Interpreter(object):
         start, end = node.var_range.accept(self)
         self.memory.push('for_loop')
 
-        for i in range(start, end+1):
-            self.memory.set(node.variable.name, i)
-            try:
-                node.block.accept(self)
-            except ContinueException as _:
-                continue
-            except BreakException as _:
-                break
-
-        self.memory.pop()
+        try:
+            for i in range(start, end+1):
+                self.memory.set(node.variable.name, i)
+                try:
+                    node.block.accept(self)
+                except ContinueException as _:
+                    continue
+                except BreakException as _:
+                    break
+        finally:
+            self.memory.pop()
 
 
     @when(AST.WhileLoop)
     def visit(self, node: AST.WhileLoop):
         self.memory.push('while_loop')
 
-        while node.condition.accept(self):
-            try:
-                node.block.accept(self)
-            except ContinueException as _:
-                continue
-            except BreakException as _:
-                break
+        try:
+            while node.condition.accept(self):
+                try:
+                    node.block.accept(self)
+                except ContinueException as _:
+                    continue
+                except BreakException as _:
+                    break
 
-        self.memory.pop()
+        finally:
+            self.memory.pop()
 
 
     @when(AST.Program)
@@ -282,7 +285,12 @@ class Interpreter(object):
             for instruction in node.instructions:
                 if isinstance(instruction, AST.Program):
                     self.memory.push('block')
-                instruction.accept(self)
+                    try:
+                        instruction.accept(self)
+                    finally:
+                        self.memory.pop()
+                else:
+                    instruction.accept(self)
         except ReturnValueException as e:
             if toplevel:
                 print(f'Program exited with value {e.value}')
